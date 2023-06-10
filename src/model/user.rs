@@ -241,6 +241,9 @@ pub struct User {
     /// which is implicitly unique.
     #[serde(default, skip_serializing_if = "Option::is_none", with = "discriminator")]
     pub discriminator: Option<NonZeroU16>,
+    /// The account's display name, if it is set.
+    /// For bots this is the application name.
+    pub global_name: Option<String>,
     /// Optional avatar hash.
     pub avatar: Option<ImageHash>,
     /// Indicator of whether the user is a bot.
@@ -416,7 +419,11 @@ impl User {
     #[inline]
     #[must_use]
     pub fn default_avatar_url(&self) -> String {
-        default_avatar_url(self.discriminator)
+        if let Some(discriminator) = self.discriminator {
+            default_avatar_url(discriminator)
+        } else {
+            new_default_avatar_url(self.id)
+        }
     }
 
     /// Sends a message to a user through a direct message channel. This is a channel that can only
@@ -785,14 +792,14 @@ impl<'a> From<&'a User> for UserId {
 }
 
 #[cfg(feature = "model")]
-fn default_avatar_url(discriminator: Option<NonZeroU16>) -> String {
-    if let Some(discriminator) = discriminator {
-        cdn!("/embed/avatars/{}.png", discriminator.get() % 5u16)
-    } else {
-        // TODO: Replace this with a correct implementation once Discord publishes how this is going
-        // to work.
-        cdn!("/embed/avatars/0.png").to_string()
-    }
+fn default_avatar_url(discriminator: NonZeroU16) -> String {
+    cdn!("/embed/avatars/{}.png", discriminator.get() % 5u16)
+}
+
+// TODO: refactor this so it is not duplicate of `default_avatar_url`
+#[cfg(feature = "model")]
+fn new_default_avatar_url(user_id: UserId) -> String {
+    cdn!("/embed/avatars/{}.png", (user_id.get() << 22) % 6u64)
 }
 
 #[cfg(feature = "model")]
