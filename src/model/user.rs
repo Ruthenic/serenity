@@ -792,7 +792,7 @@ fn default_avatar_url(user: &User) -> String {
     let avatar_id = if let Some(discriminator) = user.discriminator {
         discriminator.get() % 5 // Legacy username system
     } else {
-        ((user.id.get() << 22) % 6) as u16 // New username system
+        ((user.id.get() >> 22) % 6) as u16 // New username system
     };
 
     cdn!("/embed/avatars/{}.png", avatar_id)
@@ -893,10 +893,13 @@ mod test {
         fn default_avatars() {
             let mut user = User {
                 discriminator: None,
+                id: UserId::new(737323631117598811),
                 ..Default::default()
             };
 
-            assert!(user.default_avatar_url().ends_with("0.png"));
+            // New username system
+            assert!(user.default_avatar_url().ends_with("5.png"));
+
             user.discriminator = NonZeroU16::new(1);
             assert!(user.default_avatar_url().ends_with("1.png"));
             user.discriminator = NonZeroU16::new(2);
