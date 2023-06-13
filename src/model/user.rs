@@ -419,11 +419,7 @@ impl User {
     #[inline]
     #[must_use]
     pub fn default_avatar_url(&self) -> String {
-        if let Some(discriminator) = self.discriminator {
-            default_avatar_url(discriminator)
-        } else {
-            new_default_avatar_url(self.id)
-        }
+        default_avatar_url(self)
     }
 
     /// Sends a message to a user through a direct message channel. This is a channel that can only
@@ -792,14 +788,12 @@ impl<'a> From<&'a User> for UserId {
 }
 
 #[cfg(feature = "model")]
-fn default_avatar_url(discriminator: NonZeroU16) -> String {
-    cdn!("/embed/avatars/{}.png", discriminator.get() % 5u16)
-}
-
-// TODO: refactor this so it is not duplicate of `default_avatar_url`
-#[cfg(feature = "model")]
-fn new_default_avatar_url(user_id: UserId) -> String {
-    cdn!("/embed/avatars/{}.png", (user_id.get() << 22) % 6u64)
+fn default_avatar_url(user: &User) -> String {
+    if let Some(discriminator) = user.discriminator {
+        cdn!("/embed/avatars/{}.png", discriminator.get() % 5u16)
+    } else {
+        cdn!("/embed/avatars/{}.png", (user.id.get() << 22) % 6u64)
+    }
 }
 
 #[cfg(feature = "model")]
