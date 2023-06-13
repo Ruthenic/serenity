@@ -789,11 +789,13 @@ impl<'a> From<&'a User> for UserId {
 
 #[cfg(feature = "model")]
 fn default_avatar_url(user: &User) -> String {
-    if let Some(discriminator) = user.discriminator {
-        cdn!("/embed/avatars/{}.png", discriminator.get() % 5u16)
+    let avatar_id = if let Some(discriminator) = user.discriminator {
+        discriminator.get() % 5 // Legacy username system
     } else {
-        cdn!("/embed/avatars/{}.png", (user.id.get() << 22) % 6u64)
-    }
+        ((user.id.get() << 22) % 6) as u16 // New username system
+    };
+
+    cdn!("/embed/avatars/{}.png", avatar_id)
 }
 
 #[cfg(feature = "model")]
