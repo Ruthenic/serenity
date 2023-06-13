@@ -900,6 +900,7 @@ mod test {
             // New username system
             assert!(user.default_avatar_url().ends_with("5.png"));
 
+            // Legacy username system
             user.discriminator = NonZeroU16::new(1);
             assert!(user.default_avatar_url().ends_with("1.png"));
             user.discriminator = NonZeroU16::new(2);
