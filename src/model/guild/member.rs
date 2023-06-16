@@ -1,5 +1,3 @@
-#[cfg(feature = "model")]
-use std::borrow::Cow;
 #[cfg(feature = "cache")]
 use std::cmp::Reverse;
 use std::fmt;
@@ -14,6 +12,8 @@ use crate::http::{CacheHttp, Http};
 use crate::internal::prelude::*;
 use crate::model::permissions::Permissions;
 use crate::model::prelude::*;
+#[cfg(feature = "model")]
+use crate::model::utils::avatar_url;
 use crate::model::Timestamp;
 
 /// Information about a member of a guild.
@@ -30,7 +30,7 @@ pub struct Member {
     /// Can't be longer than 32 characters.
     pub nick: Option<String>,
     /// The guild avatar hash
-    pub avatar: Option<String>,
+    pub avatar: Option<ImageHash>,
     /// Vector of Ids of [`Role`]s given to the member.
     pub roles: Vec<RoleId>,
     /// Timestamp representing the date when the member joined.
@@ -225,8 +225,8 @@ impl Member {
     ///
     /// The nickname takes priority over the member's username if it exists.
     #[inline]
-    pub fn display_name(&self) -> Cow<'_, String> {
-        self.nick.as_ref().map_or_else(|| Cow::Owned(self.user.name.clone()), Cow::Borrowed)
+    pub fn display_name(&self) -> &str {
+        self.nick.as_ref().or(self.user.global_name.as_ref()).unwrap_or(&self.user.name)
     }
 
     /// Returns the DiscordTag of a Member, taking possible nickname into account.
@@ -528,7 +528,7 @@ impl Member {
     #[inline]
     #[must_use]
     pub fn avatar_url(&self) -> Option<String> {
-        avatar_url(self.guild_id, self.user.id, self.avatar.as_ref())
+        avatar_url(Some(self.guild_id), self.user.id, self.avatar.as_ref())
     }
 
     /// Retrieves the URL to the current member's avatar, falling back to the user's avatar, then
@@ -641,15 +641,6 @@ impl From<Member> for PartialMember {
             permissions: member.permissions,
         }
     }
-}
-
-#[cfg(feature = "model")]
-fn avatar_url(guild_id: GuildId, user_id: UserId, hash: Option<&String>) -> Option<String> {
-    hash.map(|hash| {
-        let ext = if hash.starts_with("a_") { "gif" } else { "webp" };
-
-        cdn!("/guilds/{}/users/{}/avatars/{}.{}?size=1024", guild_id.0, user_id.0, hash, ext)
-    })
 }
 
 /// [Discord docs](https://discord.com/developers/docs/resources/channel#thread-member-object),
